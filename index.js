@@ -15,8 +15,9 @@ const emailForm = document.querySelector("#emailForm");
 
 const toast = document.querySelector(".toast");
 
-const uploadURL = "http://localhost:3000/api/files";
-const emailURL = "http://localhost:3000/api/files/send";
+const baseURL = "http://localhost:3000";
+const uploadURL = `${baseURL}/api/files`;
+const emailURL = `${baseURL}/api/files/send`;
 
 browseBtn.addEventListener("click", () => {
   fileInput.click();
@@ -25,10 +26,16 @@ browseBtn.addEventListener("click", () => {
 dropZone.addEventListener("drop", (e) => {
   e.preventDefault();
   //   console.log("dropped", e.dataTransfer.files[0].name);
-  if (e.dataTransfer.files.length === 1) {
-    fileInput.files = e.dataTransfer.files;
-    uploadFile();
-  } else if (e.dataTransfer.files.length > 1) {
+  const maxAllowedSize = 100 * 1024 * 1024; //100mb
+  const files = e.dataTransfer.files;
+  if (files.length === 1) {
+    if (files[0].size < maxAllowedSize) {
+      fileInput.files = files;
+      uploadFile();
+    } else {
+      showToast("Max file size is 100MB");
+    }
+  } else if (files.length > 1) {
     showToast("You can't upload multiple files");
   }
   dropZone.classList.remove("dragged");
@@ -49,6 +56,11 @@ dropZone.addEventListener("dragleave", (e) => {
 
 // file input change and uploader
 fileInput.addEventListener("change", () => {
+  if (fileInput.files[0].size > maxAllowedSize) {
+    showToast("Max file size is 100MB");
+    fileInput.value = ""; // reset the input
+    return;
+  }
   uploadFile();
 });
 
@@ -89,6 +101,7 @@ const uploadFile = () => {
   // handle error
   xhr.upload.onerror = function () {
     showToast(`Error in upload: ${xhr.status}.`);
+    fileInput.value = ""; // reset the input
   };
 
   // listen for response which will give the link
